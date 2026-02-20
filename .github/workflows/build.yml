@@ -10,19 +10,22 @@ jobs:
         - name: Android
           os: ubuntu-latest
           target: Android
+          platform: android    # New requirement for CLI v3.0+
         - name: Windows
           os: windows-latest
+          target: Windows
+          platform: win        # New requirement for CLI v3.0+
 
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Build Mod
         uses: geode-sdk/build-geode-mod@main
         with:
           combine: true
           target: ${{ matrix.config.target }}
+          # This maps the matrix platform to the action's platform input
+          platform: ${{ matrix.config.platform }}
