@@ -10,11 +10,11 @@ jobs:
         - name: Android
           os: ubuntu-latest
           target: Android
-          platform: android    # New requirement for CLI v3.0+
+          platform: android
         - name: Windows
           os: windows-latest
           target: Windows
-          platform: win        # New requirement for CLI v3.0+
+          platform: win
 
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -27,5 +27,5 @@ jobs:
         with:
           combine: true
           target: ${{ matrix.config.target }}
-          # This maps the matrix platform to the action's platform input
-          platform: ${{ matrix.config.platform }}
+          # This tells the CLI exactly which platform to build for
+          build-args: "--platform ${{ matrix.config.platform }}"
