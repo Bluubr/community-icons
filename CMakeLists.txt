@@ -1,25 +1,21 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.21)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-# 1. Project Name (Keep this short)
-project(IconWorkshop)
+project(Community icons VERSION 1.0.0)
 
-# 2. Find and Link Geode
-find_package(Geode REQUIRED)
+add_library(${PROJECT_NAME} SHARED
+    src/main.cpp
+    )
 
-# 3. Define your source files
-# This adds main.cpp to the build
-add_geode_mod(
-    ${PROJECT_NAME}
-    SOURCES 
-        main.cpp
-)
+if (NOT DEFINED ENV{GEODE_SDK})
+    message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
+else()
+    message(STATUS "Found Geode: $ENV{GEODE_SDK}")
+endif()
 
-# 4. Resource Management
-# This ensures your workshop-icon.png in the /resources folder
-# is actually included in the final .geode file
-setup_geode_mod(${PROJECT_NAME} RESOURCES resources/*.png)
+add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-# 5. Link Dependencies (Optional but good practice)
-# If you use specific More Icons functions directly in C++, 
-# you might need to add their headers here, but usually, 
-# Geode handles the metadata linking via mod.json automatically.
+setup_geode_mod(${PROJECT_NAME})
