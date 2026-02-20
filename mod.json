@@ -1,0 +1,16 @@
+{
+    "geode": "3.0.0-beta.1",
+    "gd": "2.207",
+    "id": "bluubr.community_icons",
+    "name": "Community Icons",
+    "version": "v1.0.0",
+    "developer": "YourName",
+    "description": "Browse, download, and share custom icons in-game via More Icons!",
+    "dependencies": [
+        {
+            "id": "hiimjustin000.more_icons",
+            "version": ">=1.0.0",
+            "importance": "required"
+        }
+    ]
+}
