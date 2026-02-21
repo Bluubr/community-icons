@@ -1,4 +1,4 @@
-- uses: geode-sdk/build-geode-mod@main
+- uses: bluubr/community-icons@main
   with:
     # Which version of the SDK to use.
     # Set to 'nightly' for latest commit, 'latest' for latest release
