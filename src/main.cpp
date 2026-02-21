@@ -4,7 +4,6 @@
 
 using namespace geode::prelude;
 
-// Define our custom Workshop Popup
 class IconWorkshopPopup : public geode::Popup<> {
 protected:
     bool setup() override {
@@ -66,11 +65,38 @@ protected:
 public:
     static IconWorkshopPopup* create() {
         auto ret = new IconWorkshopPopup();
-        if (ret && ret->init(320.f, 240.f)) { // Width and Height of popup
+        if (ret && ret->init(320.f, 240.f)) {
             ret->autorelease();
             return ret;
         }
         CC_SAFE_DELETE(ret);
         return nullptr;
+    }
+};
+
+class $modify(GJGarageLayer) {
+    bool init() {
+        if (!GJGarageLayer::init()) return false;
+
+        auto winSize = CCDirector::get()->getWinSize();
+
+        auto workshopSprite = CCSprite::create("workshop-icon.png"_spr);
+        auto workshopBtn = CCMenuItemSpriteExtra::create(
+            workshopSprite,
+            this,
+            menu_selector(GJGarageLayer::onWorkshop)
+        );
+        workshopBtn->setPosition({ winSize.width - 30.f, winSize.height - 30.f });
+
+        auto menu = CCMenu::create();
+        menu->setPosition({ 0.f, 0.f });
+        menu->addChild(workshopBtn);
+        this->addChild(menu, 10);
+
+        return true;
+    }
+
+    void onWorkshop(CCObject*) {
+        IconWorkshopPopup::create()->show();
     }
 };
