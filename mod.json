@@ -1,5 +1,5 @@
 {
-	"geode": "5.0.0-beta.3",
+	"geode": "3.0.0",
 	"gd": {
 		"win": "2.2081",
 		"android": "2.2081",
@@ -7,11 +7,16 @@
 		"ios": "2.2081"
 	},
 	"id": "bluubr.community-icons",
-	"name": "Community-icons",
+	"name": "Community Icons",
 	"version": "v1.0.0",
 	"developer": "bluubr",
-	"description": "",
+	"description": "Adds a search menu to the Icon Kit to browse community icons.",
 	"dependencies": {
-		"geode.node-ids": ">=v1.20.0"
+		"geode.node-ids": ">=v1.14.0"
+	},
+	"resources": {
+		"sprites": [
+			"workshop-icon.png"
+		]
 	}
 }
