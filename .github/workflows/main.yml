@@ -1,15 +1,10 @@
-name: Build Community-icons
+name: Build Community Icons
 
 on:
   workflow_dispatch:
   push:
-    paths-ignore:
-      - 'docs/*.md'
-      - 'previews/**'
-      - 'README.md'
-      - 'rescale.py'
-
-  # pull_request:
+    branches:
+      - "**"
 
 jobs:
   build:
@@ -17,81 +12,66 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Windows
-            os: windows-latest
-            build-config: RelWithDebInfo
+        - name: Windows
+          os: windows-latest
+          platform: win
 
-          - name: macOS
-            os: macos-latest
+        - name: macOS
+          os: macos-latest
+          platform: mac
 
-          - name: iOS
-            os: macos-latest
-            target: iOS
+        - name: iOS
+          os: macos-latest
+          platform: ios
 
-          - name: Android32
-            os: ubuntu-latest
-            target: Android32
+        - name: Android32
+          os: ubuntu-latest
+          platform: android32
 
-          - name: Android64
-            os: ubuntu-latest
-            target: Android64
+        - name: Android64
+          os: ubuntu-latest
+          platform: android64
 
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          # sdk: 'latest'
-          sdk: 'nightly'
-          build-config: ${{ matrix.config.build-config || 'Release' }}
-          configure-args: '-DGLOBED_RELEASE=ON'
-          export-pdb: true
-          export-symbols: true
+          # Use platform (the new standard) instead of target
+          platform: ${{ matrix.config.platform }}
+          
+          # Fix: Manually tell it which SDK version to find
+          sdk: v3.0.0-beta.1
+          
+          # Fix: Tell CMake where the SDK is to avoid "FindGeode.cmake" error
+          build-args: "-DCMAKE_PREFIX_PATH=$GEODE_SDK"
+          
           combine: true
-          target: ${{ matrix.config.target }}
-          # sccache is broken on macos, so use no cache there :(
-          ccache-variant: ${{ matrix.config.os != 'macos-latest' && 'sccache' || '' }}
 
   package:
     name: Package builds
     runs-on: ubuntu-latest
     needs: build
-    permissions: write-all
-
     steps:
-      - name: Combine builds
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Combine Builds
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v6
         with:
-          name: globed-build-output
-          path: ${{ steps.build.outputs.build-output }}
+          dest: community-icons.geode
+          source: artifacts/*.geode
 
-      - name: Get latest release tag
-        id: getrelease
-        run: echo "tag=$(curl -s https://api.github.com/repos/${{ github.event.repository.full_name }}/releases/latest | jq -r .tag_name)" >> $GITHUB_OUTPUT
-
-      - name: Create nightly release
-        uses: andelf/nightly-release@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Final Mod
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: nightly
-          name: 'Development Release'
-          body: |
-            This is a nightly build of Globed for commit ${{ github.sha }} (${{ github.event.head_commit.message }}).
-
-            > **Note:** this build might not be stable and may contain issues, use at your own risk!
-
-            Changes since the last release: ${{ github.event.repository.html_url }}/compare/${{ steps.getrelease.outputs.tag }}...nightly
-          files: |
-            ${{ steps.build.outputs.build-output }}/*.geode
-            ${{ steps.build.outputs.build-output }}/*.pdb
-            ${{ steps.build.outputs.build-output }}/*.sym
+          name: Final-Mod
+          path: community-icons.geode
