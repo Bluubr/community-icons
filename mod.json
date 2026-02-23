@@ -15,8 +15,7 @@
 		"geode.node-ids": ">=v1.14.0"
 	},
 	"resources": {
-		"sprites": [
-			"workshop-icon.png"
+		"workshop-icon.png"
 		]
 	}
 }
