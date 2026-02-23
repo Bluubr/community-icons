@@ -1,4 +1,4 @@
-name: Build Globed
+name: Build Community-icons
 
 on:
   workflow_dispatch:
