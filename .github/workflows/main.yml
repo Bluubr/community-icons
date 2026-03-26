@@ -1,4 +1,4 @@
-name: Build Geode Mod
+name: Build Community Icons
 
 on:
   workflow_dispatch:
@@ -14,21 +14,23 @@ jobs:
         config:
         - name: Windows
           os: windows-latest
+          platform: win
 
         - name: macOS
           os: macos-latest
+          platform: mac
 
         - name: iOS
           os: macos-latest
-          target: iOS
+          platform: ios
 
         - name: Android32
           os: ubuntu-latest
-          target: Android32
+          platform: android32
 
         - name: Android64
           os: ubuntu-latest
-          target: Android64
+          platform: android64
 
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -39,19 +41,35 @@ jobs:
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
+          # Use the platform from your matrix
+          target: ${{ matrix.config.platform }}
+          platform: ${{ matrix.config.platform }}
+          configure-args: "-DGeode_DIR=${{ env.GEODE_SDK }}"
+          sdk: latest
+          
           combine: true
-          target: ${{ matrix.config.target }}
+
 
   package:
     name: Package builds
     runs-on: ubuntu-latest
-    needs: ['build']
-
+    needs: build
     steps:
-      - uses: geode-sdk/build-geode-mod/combine@main
-        id: build
-
-      - uses: actions/upload-artifact@v4
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: Build Output
-          path: ${{ steps.build.outputs.build-output }}
+          path: artifacts
+          merge-multiple: true
+
+      - name: Combine Builds
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: build
+        with:
+          dest: community-icons.geode
+          source: artifacts/*.geode
+
+      - name: Upload Final Mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: Final-Mod
+          path: community-icons.geode
