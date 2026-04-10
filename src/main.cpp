@@ -1,23 +1,23 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/CharacterColorPage.hpp>
+#include <Geode/ui/GeodeUI.hpp>
+#include <Geode/modify/GJGarageLayer.hpp>
 #include "DefaultIconsPopup.hpp"
 
 using namespace geode::prelude;
 
-class $modify(MyIconKit, CharacterColorPage) {
+class $modify(MyIconKit, GJGarageLayer) {
     bool init() {
-        if (!CharacterColorPage::init()) return false;
+        if (!GJGarageLayer::init()) return false;
 
-        auto menu = this->getChildByID("buttons-menu");
+        auto menu = this->getChildByID("shards-menu");
         if (!menu) return true;
 
-        auto btnSpr = CCSprite::create("workshop-icon.png"_spr);
-
-        if (btnSpr) {
-            btnSpr->setScale(0.8f);
-        } else {
-            btnSpr = CCSprite::createWithSpriteFrameName("GJ_searchBtn_001.png");
+        auto btnSpr = CCSprite::create(
+            (Mod::get()->getResourcesDir() / "workshop-icon.png").string().c_str());
+        if (!btnSpr) {
+            btnSpr = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
         }
+        btnSpr->setScale(0.8f);
 
         auto searchBtn = CCMenuItemSpriteExtra::create(
             btnSpr,
@@ -27,13 +27,12 @@ class $modify(MyIconKit, CharacterColorPage) {
 
         menu->addChild(searchBtn);
         searchBtn->setID("workshop-search-button"_spr);
-
         menu->updateLayout();
 
         return true;
     }
 
-    void onOpenDefaultIcons(CCObject*) {
+    void onOpenDefaultIcons(CCObject* sender) {
         DefaultIconsPopup::create()->show();
     }
 };
