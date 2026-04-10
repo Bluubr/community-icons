@@ -1,7 +1,11 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/GeodeUI.hpp>
+#include <Geode/utils/web.hpp>
+#include <Geode/utils/async.hpp>
 #include "GamemodeViewPopup.hpp"
+#include "ModerationPopup.hpp"
 
 using namespace geode::prelude;
 
@@ -10,8 +14,11 @@ struct GamemodeEntry {
     IconType    type;
 };
 
-class DefaultIconsPopup : public Popup<> {
+class DefaultIconsPopup : public geode::Popup {
 protected:
+    CCMenuItemSpriteExtra*               m_modBtn         = nullptr;
+    std::optional<arc::TaskHandle<void>> m_modCheckHandle;
+
     static std::vector<GamemodeEntry> const& getGamemodes() {
         static const std::vector<GamemodeEntry> s_gamemodes = {
             {"Cube",    IconType::Cube},
@@ -27,84 +34,113 @@ protected:
         return s_gamemodes;
     }
 
-    bool setup() override {
-        this->setTitle("Default Icons");
+    bool init() {
+        if (!Popup::init(380.f, 310.f)) return false;
+
+        this->setTitle("Community Icons");
+
+        m_bgSprite->setColor({35, 35, 50});
 
         auto winSize = m_mainLayer->getContentSize();
-        float scrollW = winSize.width - 20.f;
-        float scrollH = winSize.height - 50.f;
-
-        auto scrollLayer = ScrollLayer::create({scrollW, scrollH});
+        auto scrollLayer = ScrollLayer::create({winSize.width - 20.f, winSize.height - 50.f});
         scrollLayer->setPosition({10.f, 10.f});
         m_mainLayer->addChild(scrollLayer);
 
-        auto& gamemodes = getGamemodes();
-        int   n         = static_cast<int>(gamemodes.size());
-        float entryH    = 88.f;
-        float padding   = 6.f;
-        float totalH    = static_cast<float>(n) * entryH + static_cast<float>(n - 1) * padding;
+        auto const& gamemodes = getGamemodes();
+        float entryH = 56.f;
+        float padding = 5.f;
+        float totalH = static_cast<float>(gamemodes.size()) * (entryH + padding);
+        scrollLayer->m_contentLayer->setContentSize({winSize.width - 20.f, totalH});
 
-        scrollLayer->m_contentLayer->setContentSize({scrollW, totalH});
+        for (size_t i = 0; i < gamemodes.size(); i++) {
+            auto const& gm = gamemodes[i];
+            float y = totalH - (i * (entryH + padding)) - entryH / 2.f;
 
-        for (int i = 0; i < n; i++) {
-            auto& gm = gamemodes[static_cast<size_t>(i)];
-            float y  = totalH - static_cast<float>(i) * (entryH + padding) - entryH / 2.f;
-
-            // Row background
             auto bg = CCScale9Sprite::create("GJ_square02.png");
-            bg->setContentSize({scrollW - 8.f, entryH - 6.f});
-            bg->setPosition({scrollW / 2.f, y});
-            bg->setOpacity(100);
+            bg->setContentSize({winSize.width - 28.f, entryH - 4.f});
+            bg->setPosition({(winSize.width - 20.f) / 2.f, y});
+            bg->setColor({55, 55, 75});
+            bg->setOpacity(210);
             scrollLayer->m_contentLayer->addChild(bg);
 
-            // Default icon (frame 1) on the left
-            auto player = SimplePlayer::create(0);
-            player->updatePlayerFrame(1, gm.type);
-            player->setScale(0.75f);
-            player->setPosition({38.f, y});
-            scrollLayer->m_contentLayer->addChild(player);
-
-            // Gamemode name
             auto nameLabel = CCLabelBMFont::create(gm.name.c_str(), "goldFont.fnt");
-            nameLabel->setScale(0.65f);
+            nameLabel->setScale(0.6f);
             nameLabel->setAnchorPoint({0.f, 0.5f});
-            nameLabel->setPosition({72.f, y});
+            nameLabel->setPosition({18.f, y});
             scrollLayer->m_contentLayer->addChild(nameLabel);
 
-            // "View" button on the right
             auto viewBtnSpr = ButtonSprite::create("View");
-            viewBtnSpr->setScale(0.75f);
-
-            auto menu    = CCMenu::create();
-            auto viewBtn = CCMenuItemSpriteExtra::create(
-                viewBtnSpr,
-                this,
-                menu_selector(DefaultIconsPopup::onViewGamemode)
-            );
-            viewBtn->setTag(i);
+            viewBtnSpr->setScale(0.7f);
+            auto menu = CCMenu::create();
+            auto viewBtn = CCMenuItemSpriteExtra::create(viewBtnSpr, this, menu_selector(DefaultIconsPopup::onViewGamemode));
+            viewBtn->setTag(static_cast<int>(i));
             menu->addChild(viewBtn);
-            menu->setPosition({scrollW - 45.f, y});
+            menu->setPosition({winSize.width - 58.f, y});
             scrollLayer->m_contentLayer->addChild(menu);
         }
-
         scrollLayer->moveToTop();
 
+        auto modMenu = CCMenu::create();
+        modMenu->setPosition({0.f, 0.f});
+        m_mainLayer->addChild(modMenu, 10);
+
+        auto badgeSpr = CCSprite::create(
+            (Mod::get()->getResourcesDir() / "icon_mod_badge.png").string().c_str());
+        if (!badgeSpr) {
+            badgeSpr = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+        }
+        badgeSpr->setScale(0.55f);
+
+        m_modBtn = CCMenuItemSpriteExtra::create(
+            badgeSpr, this, menu_selector(DefaultIconsPopup::onOpenModPanel));
+        m_modBtn->setPosition({winSize.width - 18.f, winSize.height - 14.f});
+        m_modBtn->setVisible(false);
+        modMenu->addChild(m_modBtn);
+
+        this->checkModeratorStatus();
         return true;
     }
 
+    void checkModeratorStatus() {
+        auto projectId = Mod::get()->getSettingValue<std::string>("firebase-project-id");
+        if (projectId.empty()) return;
+
+        int accountID = GJAccountManager::sharedState()->m_accountID;
+        if (accountID <= 0) return;
+
+        std::string url =
+            "https://firestore.googleapis.com/v1/projects/" + projectId +
+            "/databases/(default)/documents/moderators/" +
+            std::to_string(accountID);
+
+        auto apiKey = Mod::get()->getSettingValue<std::string>("firebase-api-key");
+        if (!apiKey.empty()) url += "?key=" + apiKey;
+
+        Ref<DefaultIconsPopup> selfRef(this);
+        m_modCheckHandle = geode::async::spawn(
+            web::WebRequest().get(url),
+            [selfRef](web::WebResponse response) mutable {
+                if (!selfRef || !selfRef->m_modBtn) return;
+                if (response.ok()) {
+                    selfRef->m_modBtn->setVisible(true);
+                }
+            });
+    }
+
     void onViewGamemode(CCObject* sender) {
-        auto& gamemodes = getGamemodes();
         int idx = static_cast<CCNode*>(sender)->getTag();
-        if (idx >= 0 && idx < static_cast<int>(gamemodes.size())) {
-            auto& gm = gamemodes[static_cast<size_t>(idx)];
-            GamemodeViewPopup::create(gm.type, gm.name)->show();
-        }
+        auto const& gm = getGamemodes().at(idx);
+        GamemodeViewPopup::create(gm.type, gm.name)->show();
+    }
+
+    void onOpenModPanel(CCObject*) {
+        ModerationPopup::create()->show();
     }
 
 public:
     static DefaultIconsPopup* create() {
         auto ret = new DefaultIconsPopup();
-        if (ret && ret->initAnchored(380.f, 310.f)) {
+        if (ret && ret->init()) {
             ret->autorelease();
             return ret;
         }
