@@ -1,0 +1,43 @@
+{
+	"geode": "5.4.1",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "bluubr.community-icons",
+	"name": "Community Icons",
+	"version": "v1.0.0",
+	"developer": "bluubr",
+	"description": "Adds a search menu to the Icon Kit to browse community icons.",
+	"dependencies": {
+		"geode.node-ids": ">=v1.14.0"
+	},
+	"resources": {
+		"files": [
+			"workshop-icon.png",
+			"icon_mod_badge.png"
+		]
+	},
+	"settings": {
+		"firebase-project-id": {
+			"name": "Firebase Project ID",
+			"description": "The Firebase project ID used to fetch icon packs from Firestore (e.g. my-project-12345). Find this in the Firebase Console under Project Settings.",
+			"type": "string",
+			"default": "community-icons"
+		},
+		"firebase-api-key": {
+			"name": "Firebase Web API Key",
+			"description": "The Firebase Web API Key for write operations (accept/decline submissions). Find this in the Firebase Console under Project Settings > General > Web API Key.",
+			"type": "string",
+			"default": "AIzaSyCcHYVvkTbrkYuIOwP9YeXOZ2_bHmiQtl8"
+		},
+		"discord-url": {
+			"name": "Discord Invite URL",
+			"description": "The Discord invite link opened when clicking the 'Join the Discord' button in the icon pack browser.",
+			"type": "string",
+			"default": ""
+		}
+	}
+}
